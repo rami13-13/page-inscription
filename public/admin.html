@@ -6,8 +6,6 @@
   <title>Administration - Liste des Inscriptions</title>
   <!-- Load Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Load Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Load Inter Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +51,7 @@
         </a>
         <button 
           id="refreshBtn" 
-          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all"
+          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all cursor-pointer"
         >
           <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -179,7 +177,6 @@
             </tr>
           </thead>
           <tbody id="usersTableBody" class="divide-y divide-slate-100 text-slate-700">
-            <!-- Loading skeleton rows shown by default -->
             <tr>
               <td colspan="6" class="py-12 text-center text-slate-400">
                 <div class="inline-flex items-center gap-2">
@@ -214,29 +211,13 @@
     Plateforme de gestion &copy; 2026 - Connecté à Supabase Database
   </footer>
 
-  <!-- Supabase Script & Logic -->
+  <!-- Direct Native Fetch to Supabase REST API (Fast & Reliable, No external dependency needed) -->
   <script>
     const SUPABASE_URL = "https://snchocnzbiqiyfakztss.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuY2hvY256YmlxaXlmYWt6dHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjU1MzYsImV4cCI6MjExMDk0MTUzNn0.BK4P9afM5ppLTavCmJky7UYSYkFI9KHAuHM6MU5Kg2E";
 
-    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
     let allUsers = [];
 
-    const tableBody = document.getElementById('usersTableBody');
-    const emptyState = document.getElementById('emptyState');
-    const searchInput = document.getElementById('searchInput');
-    const domainFilter = document.getElementById('domainFilter');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const refreshIcon = document.getElementById('refreshIcon');
-    const exportCsvBtn = document.getElementById('exportCsvBtn');
-    const statTotal = document.getElementById('statTotal');
-    const statAvgAge = document.getElementById('statAvgAge');
-    const statTopDomain = document.getElementById('statTopDomain');
-    const displayCountBadge = document.getElementById('displayCountBadge');
-    const lastUpdatedText = document.getElementById('lastUpdatedText');
-
-    // Helper: Format Date
     function formatDate(dateStr) {
       if (!dateStr) return "-";
       const d = new Date(dateStr);
@@ -249,7 +230,6 @@
       });
     }
 
-    // Helper: Get badge color for domains
     function getDomainBadge(domain) {
       if (!domain) return `<span class="px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600">Non défini</span>`;
       if (domain.includes('Informatique') || domain.includes('IT')) {
@@ -266,23 +246,25 @@
       return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200">${domain}</span>`;
     }
 
-    // Update KPI summary stats
     function updateStats(users) {
-      statTotal.textContent = users.length;
-      displayCountBadge.textContent = users.length;
+      const statTotal = document.getElementById('statTotal');
+      const statAvgAge = document.getElementById('statAvgAge');
+      const statTopDomain = document.getElementById('statTopDomain');
+      const displayCountBadge = document.getElementById('displayCountBadge');
+
+      if (statTotal) statTotal.textContent = users.length;
+      if (displayCountBadge) displayCountBadge.textContent = users.length;
 
       if (users.length === 0) {
-        statAvgAge.innerHTML = `0 <span class="text-sm font-medium text-slate-400">ans</span>`;
-        statTopDomain.textContent = "-";
+        if (statAvgAge) statAvgAge.innerHTML = `0 <span class="text-sm font-medium text-slate-400">ans</span>`;
+        if (statTopDomain) statTopDomain.textContent = "-";
         return;
       }
 
-      // Calculate average age
       const totalAge = users.reduce((acc, u) => acc + (parseInt(u.age, 10) || 0), 0);
       const avg = Math.round(totalAge / users.length);
-      statAvgAge.innerHTML = `${avg} <span class="text-sm font-medium text-slate-400">ans</span>`;
+      if (statAvgAge) statAvgAge.innerHTML = `${avg} <span class="text-sm font-medium text-slate-400">ans</span>`;
 
-      // Calculate top domain
       const counts = {};
       users.forEach(u => {
         if (u.domain) counts[u.domain] = (counts[u.domain] || 0) + 1;
@@ -295,18 +277,21 @@
           topDom = dom;
         }
       }
-      statTopDomain.textContent = topDom;
+      if (statTopDomain) statTopDomain.textContent = topDom;
     }
 
-    // Render users in HTML table
     function renderTable(users) {
+      const tableBody = document.getElementById('usersTableBody');
+      const emptyState = document.getElementById('emptyState');
+      if (!tableBody) return;
+
       if (users.length === 0) {
         tableBody.innerHTML = '';
-        emptyState.classList.remove('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
         return;
       }
 
-      emptyState.classList.add('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
       tableBody.innerHTML = users.map(user => `
         <tr class="hover:bg-slate-50/80 transition-colors">
           <td class="py-4 px-6 font-mono text-xs text-slate-400">#${user.id}</td>
@@ -321,10 +306,13 @@
       `).join('');
     }
 
-    // Filter Logic
     function applyFilters() {
-      const q = searchInput.value.trim().toLowerCase();
-      const dom = domainFilter.value;
+      const searchInput = document.getElementById('searchInput');
+      const domainFilter = document.getElementById('domainFilter');
+      const displayCountBadge = document.getElementById('displayCountBadge');
+
+      const q = searchInput ? searchInput.value.trim().toLowerCase() : "";
+      const dom = domainFilter ? domainFilter.value : "";
 
       const filtered = allUsers.filter(u => {
         const matchesQuery = !q || 
@@ -337,41 +325,63 @@
       });
 
       renderTable(filtered);
-      displayCountBadge.textContent = filtered.length;
+      if (displayCountBadge) displayCountBadge.textContent = filtered.length;
     }
 
-    // Fetch users from Supabase
     async function loadUsers() {
-      if (!supabase) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-rose-500">Erreur : Supabase Client non initialisé.</td></tr>`;
-        return;
-      }
+      const tableBody = document.getElementById('usersTableBody');
+      const refreshIcon = document.getElementById('refreshIcon');
+      const lastUpdatedText = document.getElementById('lastUpdatedText');
 
-      refreshIcon.classList.add('animate-spin');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .order('id', { ascending: false });
+        // Direct native fetch to Supabase PostgREST endpoint
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&order=id.desc`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
 
-        allUsers = data || [];
+        const data = await response.json();
+        allUsers = Array.isArray(data) ? data : [];
         updateStats(allUsers);
         applyFilters();
 
         const now = new Date();
-        lastUpdatedText.textContent = `Dernière mise à jour : ${now.toLocaleTimeString('fr-FR')}`;
+        if (lastUpdatedText) {
+          lastUpdatedText.textContent = `Dernière mise à jour : ${now.toLocaleTimeString('fr-FR')}`;
+        }
 
       } catch (err) {
         console.error("Erreur de chargement Supabase:", err);
-        tableBody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-rose-600 font-medium">Erreur lors de la récupération des données : ${err.message}</td></tr>`;
+        if (tableBody) {
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="6" class="py-8 text-center text-rose-600 font-medium">
+                <div class="space-y-2">
+                  <p>Erreur lors du chargement des données : ${err.message}</p>
+                  <button onclick="loadUsers()" class="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs rounded-lg transition-colors cursor-pointer">
+                    Réessayer
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
       } finally {
-        refreshIcon.classList.remove('animate-spin');
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
       }
     }
 
-    // Export CSV feature
     function exportToCsv() {
       if (allUsers.length === 0) {
         alert("Aucun utilisateur à exporter.");
@@ -398,14 +408,27 @@
       document.body.removeChild(link);
     }
 
-    // Event Listeners
-    searchInput.addEventListener('input', applyFilters);
-    domainFilter.addEventListener('change', applyFilters);
-    refreshBtn.addEventListener('click', loadUsers);
-    exportCsvBtn.addEventListener('click', exportToCsv);
+    // Attach listeners and run initial load
+    function init() {
+      const searchInput = document.getElementById('searchInput');
+      const domainFilter = document.getElementById('domainFilter');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const exportCsvBtn = document.getElementById('exportCsvBtn');
 
-    // Initial Load
-    document.addEventListener('DOMContentLoaded', loadUsers);
+      if (searchInput) searchInput.addEventListener('input', applyFilters);
+      if (domainFilter) domainFilter.addEventListener('change', applyFilters);
+      if (refreshBtn) refreshBtn.addEventListener('click', loadUsers);
+      if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportToCsv);
+
+      loadUsers();
+    }
+
+    // Immediate execution if DOM is ready, or wait for event
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </body>
 </html>
