@@ -1,0 +1,12 @@
+[build]
+  publish = "public"
+
+[[redirects]]
+  from = "/simple_login_registration_form.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/simple_login_registration_form"
+  to = "/"
+  status = 301
