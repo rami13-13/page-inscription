@@ -6,6 +6,8 @@
   <title>Log In / Inscription</title>
   <!-- Load Tailwind CSS for responsive styling -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Load Inter Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +42,15 @@
 
     <!-- Form Body -->
     <div class="p-6 sm:p-8">
+
+      <!-- Server / Global Error Alert -->
+      <div id="globalErrorAlert" class="hidden mb-5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl flex items-start gap-2.5">
+        <svg class="w-5 h-5 text-rose-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="globalErrorMessage">Une erreur est survenue lors de l'enregistrement.</span>
+      </div>
+
       <form id="loginForm" class="space-y-5" novalidate>
         
         <!-- Full Name Input -->
@@ -171,11 +182,16 @@
         <!-- Submit Button -->
         <button 
           type="submit" 
-          class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2"
+          id="submitBtn"
+          class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <span>Se connecter</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span id="btnText">Se connecter</span>
+          <svg id="btnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+          <svg id="btnSpinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         </button>
 
@@ -189,8 +205,8 @@
           </svg>
         </div>
         <div>
-          <h2 class="text-xl font-bold text-slate-800">Connexion réussie !</h2>
-          <p class="text-sm text-slate-500 mt-1">Vos informations ont bien été enregistrées.</p>
+          <h2 class="text-xl font-bold text-slate-800">Inscription enregistrée !</h2>
+          <p class="text-sm text-slate-500 mt-1">Vos données ont été enregistrées avec succès dans Supabase.</p>
         </div>
         
         <!-- Summary Card of Submitted Info -->
@@ -225,11 +241,23 @@
     </div>
   </main>
 
+  <!-- Supabase Integration Configuration -->
   <script>
+    const SUPABASE_URL = "https://snchocnzbiqiyfakztss.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuY2hvY256YmlxaXlmYWt6dHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjU1MzYsImV4cCI6MjExMDk0MTUzNn0.BK4P9afM5ppLTavCmJky7UYSYkFI9KHAuHM6MU5Kg2E";
+
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('loginForm');
       const confirmationBox = document.getElementById('confirmationBox');
       const resetBtn = document.getElementById('resetBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnIcon = document.getElementById('btnIcon');
+      const btnSpinner = document.getElementById('btnSpinner');
+      const globalErrorAlert = document.getElementById('globalErrorAlert');
+      const globalErrorMessage = document.getElementById('globalErrorMessage');
 
       const fullNameInput = document.getElementById('fullName');
       const ageInput = document.getElementById('age');
@@ -264,8 +292,23 @@
         }
       }
 
-      // Form Submission & Validation Handler
-      form.addEventListener('submit', (e) => {
+      function setLoading(isLoading) {
+        if (isLoading) {
+          submitBtn.disabled = true;
+          btnText.textContent = "Enregistrement en cours...";
+          btnIcon.classList.add('hidden');
+          btnSpinner.classList.remove('hidden');
+          globalErrorAlert.classList.add('hidden');
+        } else {
+          submitBtn.disabled = false;
+          btnText.textContent = "Se connecter";
+          btnIcon.classList.remove('hidden');
+          btnSpinner.classList.add('hidden');
+        }
+      }
+
+      // Form Submission & Supabase Handler
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         let isValid = true;
 
@@ -316,8 +359,32 @@
           }
         }
 
-        // If valid, display visual confirmation summary
-        if (isValid) {
+        if (!isValid) return;
+
+        setLoading(true);
+
+        try {
+          if (!supabaseClient) {
+            throw new Error("Client Supabase introuvable.");
+          }
+
+          // Insert into 'users' table
+          const { data, error } = await supabaseClient
+            .from('users')
+            .insert([
+              {
+                full_name: nameVal,
+                age: ageVal,
+                tel: telVal,
+                domain: finalDomain
+              }
+            ]);
+
+          if (error) {
+            throw error;
+          }
+
+          // Display visual confirmation summary
           document.getElementById('summaryName').textContent = nameVal;
           document.getElementById('summaryAge').textContent = `${ageVal} ans`;
           document.getElementById('summaryTel').textContent = telVal;
@@ -325,6 +392,13 @@
 
           form.classList.add('hidden');
           confirmationBox.classList.remove('hidden');
+
+        } catch (err) {
+          console.error("Erreur Supabase:", err);
+          globalErrorMessage.textContent = err.message || "Erreur lors de l'enregistrement dans Supabase.";
+          globalErrorAlert.classList.remove('hidden');
+        } finally {
+          setLoading(false);
         }
       });
 
@@ -333,6 +407,7 @@
         form.reset();
         customDomainWrapper.classList.add('hidden');
         confirmationBox.classList.add('hidden');
+        globalErrorAlert.classList.add('hidden');
         form.classList.remove('hidden');
       });
     });
