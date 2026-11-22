@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration - Liste des Inscriptions</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Load Inter Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 antialiased flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">Portail Administrateur</h1>
+          <p class="text-xs text-slate-500">Gestion des utilisateurs inscrits (Supabase)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a 
+          href="/" 
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Page d'inscription
+        </a>
+        <button 
+          id="refreshBtn" 
+          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all"
+        >
+          <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Actualiser</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- KPI / Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Inscrits</p>
+          <h3 id="statTotal" class="text-3xl font-extrabold text-slate-900 mt-1">0</h3>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Âge Moyen</p>
+          <h3 id="statAvgAge" class="text-3xl font-extrabold text-indigo-600 mt-1">0 <span class="text-sm font-medium text-slate-400">ans</span></h3>
+        </div>
+        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Domaine</p>
+          <h3 id="statTopDomain" class="text-xl font-bold text-emerald-600 mt-1 truncate max-w-[180px]">-</h3>
+        </div>
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filters Toolbar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
+        
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-80">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Rechercher par nom ou tél..." 
+            class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+          >
+        </div>
+
+        <!-- Domain Filter -->
+        <select 
+          id="domainFilter" 
+          class="w-full sm:w-56 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer"
+        >
+          <option value="">Tous les domaines</option>
+          <option value="Informatique / IT">Informatique / IT</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Finance">Finance</option>
+          <option value="Design">Design</option>
+          <option value="Ingénierie">Ingénierie</option>
+          <option value="Autre">Autre</option>
+        </select>
+
+      </div>
+
+      <!-- Export CSV Button -->
+      <button 
+        id="exportCsvBtn" 
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+      >
+        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span>Exporter CSV</span>
+      </button>
+    </div>
+
+    <!-- Users Table Card -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      
+      <!-- Table Header Status Bar -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="text-base font-bold text-slate-800">
+          Liste des inscriptions 
+          <span id="displayCountBadge" class="ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600">0</span>
+        </h2>
+        <span id="lastUpdatedText" class="text-xs text-slate-400">Dernière mise à jour : --:--:--</span>
+      </div>
+
+      <!-- Table Container -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <tr>
+              <th scope="col" class="py-3.5 px-6">ID</th>
+              <th scope="col" class="py-3.5 px-6">Nom Complet</th>
+              <th scope="col" class="py-3.5 px-6">Âge</th>
+              <th scope="col" class="py-3.5 px-6">Téléphone</th>
+              <th scope="col" class="py-3.5 px-6">Domaine</th>
+              <th scope="col" class="py-3.5 px-6">Date Inscription</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Loading skeleton rows shown by default -->
+            <tr>
+              <td colspan="6" class="py-12 text-center text-slate-400">
+                <div class="inline-flex items-center gap-2">
+                  <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Chargement des utilisateurs depuis Supabase...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State Container (Hidden by default) -->
+      <div id="emptyState" class="hidden py-16 text-center space-y-3">
+        <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+        </div>
+        <p class="text-sm font-semibold text-slate-700">Aucun utilisateur trouvé</p>
+        <p class="text-xs text-slate-400">Essayez de modifier votre recherche ou vos filtres.</p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="mt-auto py-4 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+    Plateforme de gestion &copy; 2026 - Connecté à Supabase Database
+  </footer>
+
+  <!-- Supabase Script & Logic -->
+  <script>
+    const SUPABASE_URL = "https://snchocnzbiqiyfakztss.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuY2hvY256YmlxaXlmYWt6dHNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjU1MzYsImV4cCI6MjExMDk0MTUzNn0.BK4P9afM5ppLTavCmJky7UYSYkFI9KHAuHM6MU5Kg2E";
+
+    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let allUsers = [];
+
+    const tableBody = document.getElementById('usersTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('searchInput');
+    const domainFilter = document.getElementById('domainFilter');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const statTotal = document.getElementById('statTotal');
+    const statAvgAge = document.getElementById('statAvgAge');
+    const statTopDomain = document.getElementById('statTopDomain');
+    const displayCountBadge = document.getElementById('displayCountBadge');
+    const lastUpdatedText = document.getElementById('lastUpdatedText');
+
+    // Helper: Format Date
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Helper: Get badge color for domains
+    function getDomainBadge(domain) {
+      if (!domain) return `<span class="px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-600">Non défini</span>`;
+      if (domain.includes('Informatique') || domain.includes('IT')) {
+        return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200/60">${domain}</span>`;
+      } else if (domain.includes('Marketing')) {
+        return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">${domain}</span>`;
+      } else if (domain.includes('Finance')) {
+        return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">${domain}</span>`;
+      } else if (domain.includes('Design')) {
+        return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-purple-50 text-purple-700 border border-purple-200/60">${domain}</span>`;
+      } else if (domain.includes('Ingénierie')) {
+        return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200/60">${domain}</span>`;
+      }
+      return `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200">${domain}</span>`;
+    }
+
+    // Update KPI summary stats
+    function updateStats(users) {
+      statTotal.textContent = users.length;
+      displayCountBadge.textContent = users.length;
+
+      if (users.length === 0) {
+        statAvgAge.innerHTML = `0 <span class="text-sm font-medium text-slate-400">ans</span>`;
+        statTopDomain.textContent = "-";
+        return;
+      }
+
+      // Calculate average age
+      const totalAge = users.reduce((acc, u) => acc + (parseInt(u.age, 10) || 0), 0);
+      const avg = Math.round(totalAge / users.length);
+      statAvgAge.innerHTML = `${avg} <span class="text-sm font-medium text-slate-400">ans</span>`;
+
+      // Calculate top domain
+      const counts = {};
+      users.forEach(u => {
+        if (u.domain) counts[u.domain] = (counts[u.domain] || 0) + 1;
+      });
+      let topDom = "-";
+      let maxCount = 0;
+      for (const [dom, count] of Object.entries(counts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          topDom = dom;
+        }
+      }
+      statTopDomain.textContent = topDom;
+    }
+
+    // Render users in HTML table
+    function renderTable(users) {
+      if (users.length === 0) {
+        tableBody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tableBody.innerHTML = users.map(user => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-4 px-6 font-mono text-xs text-slate-400">#${user.id}</td>
+          <td class="py-4 px-6 font-semibold text-slate-900">${user.full_name || "-"}</td>
+          <td class="py-4 px-6 text-slate-600">${user.age ? `${user.age} ans` : "-"}</td>
+          <td class="py-4 px-6 text-slate-700 font-mono text-xs">
+            <a href="tel:${user.tel}" class="hover:text-blue-600 hover:underline">${user.tel || "-"}</a>
+          </td>
+          <td class="py-4 px-6">${getDomainBadge(user.domain)}</td>
+          <td class="py-4 px-6 text-slate-500 text-xs">${formatDate(user.created_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Filter Logic
+    function applyFilters() {
+      const q = searchInput.value.trim().toLowerCase();
+      const dom = domainFilter.value;
+
+      const filtered = allUsers.filter(u => {
+        const matchesQuery = !q || 
+          (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+          (u.tel && u.tel.toLowerCase().includes(q));
+
+        const matchesDomain = !dom || (u.domain && u.domain.includes(dom));
+
+        return matchesQuery && matchesDomain;
+      });
+
+      renderTable(filtered);
+      displayCountBadge.textContent = filtered.length;
+    }
+
+    // Fetch users from Supabase
+    async function loadUsers() {
+      if (!supabase) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-rose-500">Erreur : Supabase Client non initialisé.</td></tr>`;
+        return;
+      }
+
+      refreshIcon.classList.add('animate-spin');
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (error) throw error;
+
+        allUsers = data || [];
+        updateStats(allUsers);
+        applyFilters();
+
+        const now = new Date();
+        lastUpdatedText.textContent = `Dernière mise à jour : ${now.toLocaleTimeString('fr-FR')}`;
+
+      } catch (err) {
+        console.error("Erreur de chargement Supabase:", err);
+        tableBody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-rose-600 font-medium">Erreur lors de la récupération des données : ${err.message}</td></tr>`;
+      } finally {
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    // Export CSV feature
+    function exportToCsv() {
+      if (allUsers.length === 0) {
+        alert("Aucun utilisateur à exporter.");
+        return;
+      }
+
+      const headers = ["ID", "Nom Complet", "Âge", "Téléphone", "Domaine", "Date"];
+      const rows = allUsers.map(u => [
+        u.id,
+        `"${(u.full_name || "").replace(/"/g, '""')}"`,
+        u.age,
+        `"${u.tel || ""}"`,
+        `"${(u.domain || "").replace(/"/g, '""')}"`,
+        `"${u.created_at || ""}"`
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `inscriptions_supabase_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', applyFilters);
+    domainFilter.addEventListener('change', applyFilters);
+    refreshBtn.addEventListener('click', loadUsers);
+    exportCsvBtn.addEventListener('click', exportToCsv);
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+</body>
+</html>
